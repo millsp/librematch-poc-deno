@@ -137,7 +137,6 @@ model rating {
   date           DateTime
   leaderboard_id Int
   rating_diff    Int?     @db.SmallInt
-  //  @@index([profile_id], map: "IDX_rating_profile_id")
 
   @@id([leaderboard_id, profile_id, games])
 }
