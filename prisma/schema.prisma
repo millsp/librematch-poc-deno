@@ -9,10 +9,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model api_key {
-  api_key String @id
-}
-
 model leaderboard_row {
   leaderboard_id  Int
   profile_id      Int
@@ -24,7 +20,7 @@ model leaderboard_row {
   losses          Int?
   streak          Int?
   wins            Int?
-  updated_at      DateTime
+  updated_at      DateTime  @updatedAt
   rank_country    Int?
   profile         profile   @relation(fields: [profile_id], references: [profile_id])
 
@@ -66,26 +62,11 @@ model match {
   leaderboard_id          Int?
   privacy                 Int?
   creator_profile_id      Int?
-  profile                 profile?  @relation(fields: [creator_profile_id], references: [profile_id])
-  player                  player[]
+  creator_profile         profile?  @relation("creator_profile", fields: [creator_profile_id], references: [profile_id])
+  players                 player[]
 
   @@index([finished], map: "IDX_ae68e51ffaf47285b168278edf")
   @@index([started], map: "IDX_e7b6cfca8139b9aa85880aab9e")
-}
-
-model match_pending {
-  profile_id Int @id
-  priority   Int
-}
-
-model match_raw {
-  match_id Int      @id
-  json     String
-  version  Int?
-  error    Boolean?
-
-  @@index([error], map: "IDX_match_raw_error")
-  @@index([version], map: "IDX_match_raw_version")
 }
 
 model player {
@@ -118,8 +99,35 @@ model profile {
   last_match_fetched_time DateTime?
   last_refresh            DateTime?
   leaderboard_row         leaderboard_row[]
-  match                   match[]
-  player                  player[]
+  created_matches         match[]           @relation("creator_profile")
+  players                 player[]
+}
+
+model match_pending {
+  profile_id Int @id
+  priority   Int
+}
+
+model api_key {
+  api_key String @id
+}
+
+model setting {
+  component String
+  key       String
+  value     String
+
+  @@id([component, key])
+}
+
+model match_raw {
+  match_id Int      @id
+  json     String
+  version  Int?
+  error    Boolean?
+
+  @@index([version], map: "IDX_match_raw_version")
+  @@index([error], map: "IDX_match_raw_error")
 }
 
 model rating {
@@ -129,16 +137,9 @@ model rating {
   date           DateTime
   leaderboard_id Int
   rating_diff    Int?     @db.SmallInt
+  //  @@index([profile_id], map: "IDX_rating_profile_id")
 
   @@id([leaderboard_id, profile_id, games])
-}
-
-model setting {
-  component String
-  key       String
-  value     String
-
-  @@id([component, key])
 }
 
 model smaller_match {
@@ -179,19 +180,19 @@ model smaller_match {
   victory            Int?             @db.SmallInt
   victory_time       Int?
   visibility         Int?             @db.SmallInt
-  smaller_player     smaller_player[]
+  players            smaller_player[]
 }
 
 model smaller_player {
-  match_id        Int
-  profile_id      Int
-  slot            Int             @db.SmallInt
-  civ             Int?
-  team            Int?            @db.SmallInt
-  color           Int?            @db.SmallInt
-  won             Boolean?
-  smaller_match   smaller_match   @relation(fields: [match_id], references: [match_id])
-  smaller_profile smaller_profile @relation(fields: [profile_id], references: [profile_id])
+  match_id   Int
+  profile_id Int
+  slot       Int             @db.SmallInt
+  civ        Int?
+  team       Int?            @db.SmallInt
+  color      Int?            @db.SmallInt
+  won        Boolean?
+  match      smaller_match   @relation(fields: [match_id], references: [match_id])
+  profile    smaller_profile @relation(fields: [profile_id], references: [profile_id])
 
   @@id([match_id, profile_id, slot])
 }
@@ -205,5 +206,5 @@ model smaller_profile {
   country                 String?
   avatarhash              String?
   last_match_fetched_time DateTime?
-  smaller_player          smaller_player[]
+  players                 smaller_player[]
 }
